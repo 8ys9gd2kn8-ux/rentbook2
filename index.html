@@ -5,7 +5,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Rentbook">
 <meta name="theme-color" content="#0f766e">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <style>
 :root{--bg:#eaf0ef;--ink:#12292c;--mut:#5a6e71;--card:#fff;--line:#d3dedd;--acc:#0f766e;--accs:#d7efeb;--warn:#b45309;--bad:#b42318;--ok:#15803d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1b1d;--ink:#e3eeed;--mut:#93a8aa;--card:#16292c;--line:#2a4245;--acc:#3cc4b4;--accs:#17403d;--warn:#f0a04b;--bad:#ff8a7a;--ok:#5fd28a}}
@@ -166,6 +166,10 @@ if(rt=='mon'){rm=rm||thisM();const cn=active().filter(t=>owed(t,rm)>0);b=`<div c
 const range=rt=='mon'?'':`<div class="card np"><div class="row"><div><label>From</label><input type="date" value="${rf}" onchange="rf=this.value;go()"></div><div><label>To</label><input type="date" value="${rto}" onchange="rto=this.value;go()"></div></div><div class="row" style="margin-top:8px"><button class="g sm" onclick="setR('m')">This month</button><button class="g sm" onclick="setR('y')">This year</button><button class="g sm" onclick="setR('a')">All time</button></div></div>`;
 return`<h2>Reports</h2><div class="np" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px">${tabs.map(t=>`<button class="${t[0]==rt?'':'g'} sm" style="white-space:nowrap" onclick="rt='${t[0]}';go()">${t[1]}</button>`).join('')}</div>${range}<h3 style="margin-top:0">${title} report${rt=='mon'?'':' · '+rf+' to '+rto}</h3>${b}<button class="np" onclick="window.print()">Print or save as PDF</button>`}
 function setR0(){rf=thisM()+'-01';rto=add(nextM(thisM())+'-01',-1)}
+
+document.addEventListener('gesturestart',e=>e.preventDefault());
+let lastTouch=0;
+document.addEventListener('touchend',e=>{const now=Date.now();if(now-lastTouch<300)e.preventDefault();lastTouch=now},{passive:false});
 addEventListener('hashchange',go);go();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script></body></html>
