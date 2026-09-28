@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Rentbook</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rentbook">
+<meta name="theme-color" content="#0f766e">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#eaf0ef;--ink:#12292c;--mut:#5a6e71;--card:#fff;--line:#d3dedd;--acc:#0f766e;--accs:#d7efeb;--warn:#b45309;--bad:#b42318;--ok:#15803d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1b1d;--ink:#e3eeed;--mut:#93a8aa;--card:#16292c;--line:#2a4245;--acc:#3cc4b4;--accs:#17403d;--warn:#f0a04b;--bad:#ff8a7a;--ok:#5fd28a}}
+:root[data-theme="dark"]{--bg:#0e1b1d;--ink:#e3eeed;--mut:#93a8aa;--card:#16292c;--line:#2a4245;--acc:#3cc4b4;--accs:#17403d;--warn:#f0a04b;--bad:#ff8a7a;--ok:#5fd28a}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 'Public Sans',system-ui,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 6px}
+h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}h2{margin:0 0 12px;font-size:20px}h3{margin:18px 0 8px;font-size:15px}
+nav{display:flex;gap:6px;overflow-x:auto;padding:6px 16px 10px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+nav a{white-space:nowrap;padding:7px 12px;border-radius:99px;color:var(--mut);text-decoration:none;font-weight:600}
+nav a.on{background:var(--acc);color:#fff}
+main{max-width:980px;margin:0 auto;padding:6px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.stat b{display:block;font-size:22px;font-weight:800}.stat span{color:var(--mut);font-size:13px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>div{flex:1;min-width:130px}
+label{display:block;font-size:12.5px;color:var(--mut);margin-bottom:3px;font-weight:600}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit}
+button{padding:9px 14px;border:0;border-radius:7px;background:var(--acc);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+button.g{background:transparent;color:var(--acc);border:1px solid var(--line)}button.sm{padding:4px 9px;font-size:13px}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--mut);font-weight:600;font-size:13px}
+.tag{padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600;background:var(--accs);color:var(--acc)}
+.tag.w{background:transparent;color:var(--warn);border:1px solid var(--warn)}.tag.b{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.mut{color:var(--mut)}.empty{color:var(--mut);padding:10px 0}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.cal div{min-height:58px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:3px;font-size:11px;overflow:hidden}
+.cal .h{min-height:0;background:none;border:0;text-align:center;color:var(--mut);font-weight:600}.cal .t{border-color:var(--acc)}
+.cal i{display:block;font-style:normal;background:var(--warn);color:#fff;border-radius:3px;padding:0 3px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+#modal .card{max-width:420px;width:100%;max-height:90%;overflow:auto;margin:0}
+#toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:99px;display:none;z-index:30}
+#lock{max-width:340px;margin:18vh auto;padding:0 16px}
+@media print{body>*:not(#modal){display:none!important}#modal{position:static;background:none;display:block!important}.np{display:none}}
+</style></head><body>
+<div id="app"></div><div id="modal"></div><div id="toast"></div>
+<script>
+const KEY='rentbook_v1';
+let S={pw:'admin',cur:'KES',rent:10000,units:[{id:1,name:'Unit A1',rent:0},{id:2,name:'Unit A2',rent:0}],tenants:[],pays:[],exps:[],issues:[],seq:10};
+try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let authed=false,sel=null,cm=null,rm=null;
+const pad=n=>String(n).padStart(2,'0'),iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=()=>iso(new Date()),thisM=()=>today().slice(0,7);
+const add=(d,n)=>{const x=new Date(d+'T00:00');x.setDate(x.getDate()+n);return iso(x)};
+const left=d=>Math.round((new Date(d+'T00:00')-new Date(today()+'T00:00'))/864e5);
+const money=n=>S.cur+' '+(+n||0).toLocaleString(undefined,{maximumFractionDigits:2});
+const mname=m=>new Date(m+'-01T00:00').toLocaleDateString(undefined,{month:'long',year:'numeric'});
+const $=id=>document.getElementById(id),v=id=>$(id).value.trim();
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>S.seq++;
+const active=()=>S.tenants.filter(t=>t.on!==false);
+const tn=id=>(S.tenants.find(t=>t.id==id)||{name:'?'}).name;
+const un=id=>(S.units.find(u=>u.id==id)||{name:'-'}).name;
+const rentOf=t=>{const u=S.units.find(x=>x.id==t.unit);return u&&+u.rent?+u.rent:+S.rent};
+const paid=(t,m)=>S.pays.filter(p=>p.t==t.id&&p.m==m).reduce((a,p)=>a+ +p.amt,0);
+const owed=(t,m)=>t.on!==false&&t.adm.slice(0,7)<=m?Math.max(0,rentOf(t)-paid(t,m)):0;
+const expiry=t=>{let e=null;S.pays.filter(p=>p.t==t.id).forEach(p=>{const d=add(p.from,+p.days);if(!e||d>e)e=d});return e};
+const sum=a=>a.reduce((x,y)=>x+ +y,0);
+const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)};
+const opts=(a,f,s)=>a.map(x=>`<option value="${x.id}" ${x.id==s?'selected':''}>${esc(f(x))}</option>`).join('');
+const tbl=(h,rows)=>rows.length?`<div class="tw"><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</table></div>`:'<div class="empty">Nothing here yet.</div>';
+const stat=(l,n)=>`<div class="stat"><b>${n}</b><span>${l}</span></div>`;
+const status=t=>{const e=expiry(t);if(!e)return'<span class="tag b">No payment</span>';const d=left(e);return d<0?`<span class="tag b">Expired ${-d}d ago</span>`:d<=5?`<span class="tag w">${d}d left</span>`:`<span class="tag">${d}d left</span>`};
+
+const pages={
+dash(){const m=thisM(),col=sum(S.pays.filter(p=>p.m==m).map(p=>p.amt)),ex=sum(S.exps.filter(e=>e.d.slice(0,7)==m).map(e=>e.amt)),out=sum(active().map(t=>owed(t,m))),occ=active().length;
+const tx=[...S.pays.map(p=>({d:p.date,k:'Rent',w:tn(p.t)+' · '+mname(p.m),a:p.amt,p:1})),...S.exps.map(e=>({d:e.d,k:'Expense',w:e.cat+': '+e.desc,a:e.amt}))].sort((a,b)=>b.d.localeCompare(a.d)).slice(0,12);
+return`<h2>Dashboard</h2><div class="grid">${stat('Units',S.units.length)}${stat('Occupied',occ)}${stat('Vacant',Math.max(0,S.units.length-occ))}${stat('Collected in '+mname(m),money(col))}${stat('Outstanding',money(out))}${stat('Expenses',money(ex))}${stat('Net this month',money(col-ex))}${stat('All-time collected',money(sum(S.pays.map(p=>p.amt))))}</div>
+<div class="card"><h3 style="margin-top:0">Tenants and payment status</h3>${tbl(['Tenant','Unit','Rent','This month','Valid until','Status'],active().map(t=>[esc(t.name),esc(un(t.unit)),money(rentOf(t)),owed(t,m)?`<span class="tag b">Owes ${money(owed(t,m))}</span>`:'<span class="tag">Cleared</span>',expiry(t)||'-',status(t)]))}</div>
+<div class="card"><h3 style="margin-top:0">Recent transactions</h3>${tbl(['Date','Type','Details','Amount'],tx.map(x=>[x.d,x.k,esc(x.w),(x.p?'+ ':'- ')+money(x.a)]))}</div>`},
+pay(){const t0=active()[0];
+return`<h2>Payments</h2><div class="card"><div class="row"><div><label>Tenant</label><select id="pt" onchange="fillAmt()">${opts(active(),t=>t.name+' ('+un(t.unit)+')')}</select></div><div><label>Month paid for</label><input id="pm" type="month" value="${thisM()}"></div><div><label>Amount</label><input id="pa" type="number" value="${t0?rentOf(t0):''}"></div></div>
+<div class="row" style="margin-top:10px"><div><label>Date received</label><input id="pd" type="date" value="${today()}"></div><div><label>Valid from</label><input id="pf" type="date" value="${today()}"></div><div><label>Valid for (days)</label><input id="pv" type="number" value="30"></div><div style="flex:0"><button onclick="addPay()">Record and issue receipt</button></div></div>${active().length?'':'<p class="mut">Admit a tenant in Setup first.</p>'}</div>
+<div class="card"><h3 style="margin-top:0">All payments</h3>${tbl(['Receipt','Date','Tenant','Month','Amount','Valid until',''],[...S.pays].reverse().map(p=>['#'+p.no,p.date,esc(tn(p.t)),mname(p.m),money(p.amt),add(p.from,+p.days),`<button class="g sm" onclick="receipt(${p.id})">Receipt</button>`]))}</div>`},
+acct(){const t=S.tenants.find(x=>x.id==sel)||S.tenants[0];const pick=`<div class="card"><label>Tenant account</label><select onchange="sel=+this.value;go()">${opts(S.tenants,x=>x.name+(x.on===false?' (moved out)':''),t&&t.id)}</select></div>`;
+if(!t)return`<h2>Tenant accounts</h2><div class="empty">No tenants yet. Admit one in Setup.</div>`;
+const ps=S.pays.filter(p=>p.t==t.id).reverse(),is=S.issues.filter(i=>i.t==t.id).reverse();let ow=[];for(let m=t.adm.slice(0,7);m<=thisM();m=nextM(m)){const o=owed(t,m);if(o)ow.push([mname(m),money(o)])}
+return`<h2>Tenant accounts</h2>${pick}<div class="grid">${stat('Unit',esc(un(t.unit)))}${stat('Monthly rent',money(rentOf(t)))}${stat('Admitted',t.adm)}${stat('Total paid',money(sum(ps.map(p=>p.amt))))}${stat('Arrears',money(sum(ow.map(o=>0))||sumOwed(t)))}</div>
+<div class="card"><h3 style="margin-top:0">Payments</h3>${tbl(['Receipt','Date','Month','Amount','Valid until'],ps.map(p=>['#'+p.no,p.date,mname(p.m),money(p.amt),add(p.from,+p.days)]))}</div>
+<div class="card"><h3 style="margin-top:0">Unpaid months</h3>${tbl(['Month','Owed'],ow)}</div>
+<div class="card"><h3 style="margin-top:0">Issues</h3><div class="row"><div style="flex:3"><input id="is" placeholder="Describe an issue (e.g. leaking tap, late notice)"></div><div style="flex:0"><button onclick="addIssue(${t.id})">Add</button></div></div>${tbl(['Date','Issue','Status',''],is.map(i=>[i.d,esc(i.txt),i.done?'<span class="tag">Resolved</span>':'<span class="tag w">Open</span>',`<button class="g sm" onclick="togIssue(${i.id})">${i.done?'Reopen':'Resolve'}</button>`]))}</div>`},
+cal(){cm=cm||thisM();const f=new Date(cm+'-01T00:00'),dim=new Date(f.getFullYear(),f.getMonth()+1,0).getDate(),ex={};active().forEach(t=>{const e=expiry(t);if(e&&e.slice(0,7)==cm)(ex[e]=ex[e]||[]).push(t.name)});
+let c=['S','M','T','W','T','F','S'].map(d=>`<div class="h">${d}</div>`).join('')+'<div style="visibility:hidden"></div>'.repeat(f.getDay());
+for(let d=1;d<=dim;d++){const k=cm+'-'+pad(d);c+=`<div class="${k==today()?'t':''}">${d}${(ex[k]||[]).map(n=>`<i>${esc(n)}</i>`).join('')}</div>`}
+const l=active().map(t=>({t,e:expiry(t)})).sort((a,b)=>(a.e||'0').localeCompare(b.e||'0'));
+return`<h2>Calendar</h2><div class="card"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><button class="g sm" onclick="cm=prevM(cm);go()">Prev</button><b>${mname(cm)}</b><button class="g sm" onclick="cm=nextM(cm);go()">Next</button></div><div class="cal">${c}</div><p class="mut">Highlighted names show the day that tenant's paid period ends.</p></div>
+<div class="card"><h3 style="margin-top:0">Time left per tenant</h3>${tbl(['Tenant','Unit','Valid until','Days left'],l.map(x=>[esc(x.t.name),esc(un(x.t.unit)),x.e||'-',status(x.t)]))}</div>`},
+exp(){return`<h2>Expenses</h2><div class="card"><div class="row"><div><label>Date</label><input id="ed" type="date" value="${today()}"></div><div><label>Unit</label><select id="eu"><option value="0">General / all units</option>${opts(S.units,u=>u.name)}</select></div><div><label>Category</label><select id="ec"><option>Repairs</option><option>Utilities</option><option>Cleaning</option><option>Taxes and fees</option><option>Security</option><option>Other</option></select></div></div>
+<div class="row" style="margin-top:10px"><div style="flex:3"><label>Description</label><input id="ex"></div><div><label>Amount</label><input id="ea" type="number"></div><div style="flex:0"><button onclick="addExp()">Add expense</button></div></div></div>
+<div class="grid">${stat('Total expenses',money(sum(S.exps.map(e=>e.amt))))}${stat('This month',money(sum(S.exps.filter(e=>e.d.slice(0,7)==thisM()).map(e=>e.amt))))}</div>
+<div class="card">${tbl(['Date','Unit','Category','Description','Amount',''],[...S.exps].sort((a,b)=>b.d.localeCompare(a.d)).map(e=>[e.d,e.u?esc(un(e.u)):'General',e.cat,esc(e.desc),money(e.amt),`<button class="g sm" onclick="delExp(${e.id})">Delete</button>`]))}</div>`},
+units(){return`<h2>Units</h2><div class="card"><div class="row"><div><label>Unit name or number</label><input id="un"></div><div><label>Monthly rent (blank = default)</label><input id="ur" type="number"></div><div style="flex:0"><button onclick="addUnit()">Add unit</button></div></div></div>
+<div class="card">${tbl(['Unit','Rent','Occupant',''],S.units.map(u=>{const t=active().find(t=>t.unit==u.id);return[esc(u.name),money(+u.rent||S.rent),t?esc(t.name):'<span class="tag w">Vacant</span>',`<button class="g sm" onclick="delUnit(${u.id})">Remove</button>`]}))}</div>`},
+rep(){rm=rm||thisM();const col=sum(S.pays.filter(p=>p.m==rm).map(p=>p.amt)),ex=sum(S.exps.filter(e=>e.d.slice(0,7)==rm).map(e=>e.amt)),cn=active().filter(t=>owed(t,rm)>0);
+return`<h2>Reports</h2><div class="card np"><div class="row"><div><label>Month</label><input type="month" value="${rm}" onchange="rm=this.value;go()"></div><div style="flex:0"><button onclick="window.print()">Print</button></div></div></div>
+<div class="grid">${stat('Rent due',money(sum(active().filter(t=>t.adm.slice(0,7)<=rm).map(rentOf))))}${stat('Collected',money(col))}${stat('Unpaid',money(sum(cn.map(t=>owed(t,rm)))))}${stat('Expenses',money(ex))}${stat('Net income',money(col-ex))}</div>
+<div class="card"><h3 style="margin-top:0">Report for ${mname(rm)}</h3>${tbl(['Tenant','Unit','Rent','Paid','Balance'],active().filter(t=>t.adm.slice(0,7)<=rm).map(t=>[esc(t.name),esc(un(t.unit)),money(rentOf(t)),money(paid(t,rm)),owed(t,rm)?`<span class="tag b">${money(owed(t,rm))}</span>`:'<span class="tag">Cleared</span>']))}</div>
+<div class="card"><h3 style="margin-top:0">Credit notes</h3>${tbl(['Note','Tenant','Month','Amount unpaid',''],cn.map(t=>['CN-'+rm.replace('-','')+'-'+t.id,esc(t.name),mname(rm),money(owed(t,rm)),`<button class="g sm np" onclick="creditNote(${t.id})">View</button>`]))}</div>`},
+set(){return`<h2>Setup</h2><div class="card"><h3 style="margin-top:0">Price charged</h3><div class="row"><div><label>Currency</label><input id="sc" value="${esc(S.cur)}"></div><div><label>Default monthly rent</label><input id="sr" type="number" value="${S.rent}"></div><div style="flex:0"><button onclick="saveP()">Save</button></div></div><p class="mut">Set a different rent for a single unit on the Units page.</p></div>
+<div class="card"><h3 style="margin-top:0">Admit a tenant</h3><div class="row"><div><label>Name</label><input id="tnm"></div><div><label>Phone</label><input id="tph"></div><div><label>Unit</label><select id="tu">${opts(S.units.filter(u=>!active().some(t=>t.unit==u.id)),u=>u.name)}</select></div><div><label>Admission date</label><input id="ta" type="date" value="${today()}"></div><div style="flex:0"><button onclick="addTen()">Admit</button></div></div></div>
+<div class="card"><h3 style="margin-top:0">Manage tenants</h3>${tbl(['Name','Phone','Unit','Admitted','Status',''],S.tenants.map(t=>[esc(t.name),esc(t.ph),esc(un(t.unit)),t.adm,t.on===false?'Moved out':'Living here',`<button class="g sm" onclick="togTen(${t.id})">${t.on===false?'Re-admit':'Move out'}</button>`]))}</div>
+<div class="card"><h3 style="margin-top:0">Password</h3><div class="row"><div><label>New password</label><input id="np" type="password"></div><div style="flex:0"><button onclick="setPw()">Change password</button></div></div><p class="mut">Data is stored in this browser only. The password is a convenience lock, not strong security.</p></div>`}
+};
+const nextM=m=>{const d=new Date(m+'-01T00:00');d.setMonth(d.getMonth()+1);return iso(d).slice(0,7)},prevM=m=>{const d=new Date(m+'-01T00:00');d.setMonth(d.getMonth()-1);return iso(d).slice(0,7)};
+const sumOwed=t=>{let s=0;for(let m=t.adm.slice(0,7);m<=thisM();m=nextM(m))s+=owed(t,m);return money(s)};
+const NAV=[['dash','Dashboard'],['pay','Payments'],['acct','Tenant accounts'],['cal','Calendar'],['exp','Expenses'],['units','Units'],['rep','Reports'],['set','Setup']];
+function go(){if(!authed){$('app').innerHTML=`<div id="lock"><h1>Rentbook</h1><p class="mut">Enter your password to continue.</p><input id="lp" type="password" onkeydown="if(event.key=='Enter')login()"><br><br><button onclick="login()">Unlock</button><p class="mut">First time? The password is admin. Change it in Setup.</p></div>`;return}
+const p=(location.hash.slice(1)||'dash');$('app').innerHTML=`<header><h1>Rentbook</h1><button class="g sm" onclick="authed=false;go()">Lock</button></header><nav>${NAV.map(n=>`<a href="#${n[0]}" class="${n[0]==p?'on':''}">${n[1]}</a>`).join('')}</nav><main>${(pages[p]||pages.dash)()}</main>`}
+function login(){if(v('lp')==S.pw){authed=true;go()}else toast('Wrong password')}
+function fillAmt(){const t=S.tenants.find(x=>x.id==$('pt').value);if(t)$('pa').value=rentOf(t)}
+function addPay(){const t=+v('pt'),a=+v('pa');if(!t||!a||!v('pm'))return toast('Choose a tenant, month and amount');const p={id:uid(),no:String(1000+S.pays.length+1),t,m:v('pm'),amt:a,date:v('pd'),from:v('pf'),days:+v('pv')||30};S.pays.push(p);save();go();receipt(p.id)}
+function receipt(id){const p=S.pays.find(x=>x.id==id),t=S.tenants.find(x=>x.id==p.t),bal=owed(t,p.m);$('modal').style.display='flex';$('modal').innerHTML=`<div class="card"><h2>Receipt #${p.no}</h2><p>Received from <b>${esc(t.name)}</b> (${esc(un(t.unit))}) on ${p.date}</p>${tbl(['Item','Amount'],[['Rent for '+mname(p.m),money(p.amt)],['Valid','from '+p.from+' to '+add(p.from,+p.days)],['Balance for month',bal?money(bal):'Cleared']])}<p>${bal?'':'<span class="tag">Month cleared</span>'}</p><div class="row np"><button onclick="window.print()">Print</button><button class="g" onclick="$('modal').style.display='none'">Close</button></div></div>`}
+function creditNote(id){const t=S.tenants.find(x=>x.id==id);$('modal').style.display='flex';$('modal').innerHTML=`<div class="card"><h2>Credit note</h2><p>Issued ${today()} to <b>${esc(t.name)}</b> (${esc(un(t.unit))})</p>${tbl(['Item','Amount'],[['Rent for '+mname(rm),money(rentOf(t))],['Paid',money(paid(t,rm))],['Amount unpaid',money(owed(t,rm))]])}<div class="row np" style="margin-top:12px"><button onclick="window.print()">Print</button><button class="g" onclick="$('modal').style.display='none'">Close</button></div></div>`}
+function addExp(){const a=+v('ea');if(!a||!v('ex'))return toast('Add a description and amount');S.exps.push({id:uid(),d:v('ed'),u:+v('eu'),cat:v('ec'),desc:v('ex'),amt:a});save();go()}
+function delExp(id){S.exps=S.exps.filter(e=>e.id!=id);save();go()}
+function addUnit(){if(!v('un'))return toast('Enter a unit name');S.units.push({id:uid(),name:v('un'),rent:+v('ur')||0});save();go()}
+function delUnit(id){if(active().some(t=>t.unit==id))return toast('Move the tenant out first');S.units=S.units.filter(u=>u.id!=id);save();go()}
+function addTen(){if(!v('tnm')||!v('tu'))return toast('Enter a name and choose a free unit');const t={id:uid(),name:v('tnm'),ph:v('tph'),unit:+v('tu'),adm:v('ta'),on:true};S.tenants.push(t);sel=t.id;save();go();toast('Tenant admitted. Record their first payment.')}
+function togTen(id){const t=S.tenants.find(x=>x.id==id);if(t.on===false&&active().some(x=>x.unit==t.unit))return toast('That unit is occupied');t.on=t.on===false;save();go()}
+function saveP(){S.cur=v('sc')||'KES';S.rent=+v('sr')||0;save();go();toast('Saved')}
+function setPw(){if(v('np').length<4)return toast('Use at least 4 characters');S.pw=v('np');save();go();toast('Password changed')}
+function addIssue(t){if(!v('is'))return;S.issues.push({id:uid(),t,d:today(),txt:v('is'),done:false});save();go()}
+function togIssue(id){const i=S.issues.find(x=>x.id==id);i.done=!i.done;save();go()}
+addEventListener('hashchange',go);go();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
